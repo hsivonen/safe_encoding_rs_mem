@@ -18,7 +18,9 @@ use std::char::REPLACEMENT_CHARACTER;
 
 #[inline(always)]
 fn write_iterator_to_slice<I: Iterator>(iter: I, slice: &mut [I::Item]) -> usize {
-    iter.zip(slice.iter_mut()).map(|(from, to)| *to = from).count()
+    iter.zip(slice.iter_mut())
+        .map(|(from, to)| *to = from)
+        .count()
 }
 
 #[inline(always)]
@@ -67,12 +69,8 @@ pub fn is_basic_latin(buffer: &[u16]) -> bool {
 #[inline]
 pub fn is_utf8_latin1(buffer: &[u8]) -> bool {
     match ::std::str::from_utf8(buffer) {
-        Err(_) => {
-            false
-        },
-        Ok(s) => {
-            is_str_latin1(s)
-        }
+        Err(_) => false,
+        Ok(s) => is_str_latin1(s),
     }
 
 }
@@ -137,10 +135,8 @@ pub fn convert_utf8_to_utf16(src: &[u8], dst: &mut [u16]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_str_to_utf16(src: &str, dst: &mut [u16]) -> usize {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
     write_iterator_to_slice(src.encode_utf16(), dst)
 }
 
@@ -165,7 +161,9 @@ pub fn convert_str_to_utf16(src: &str, dst: &mut [u16]) -> usize {
 #[inline]
 pub fn convert_utf16_to_utf8(src: &[u16], dst: &mut [u8]) -> usize {
     assert!(dst.len() >= src.len() * 3 + 1);
-    write_char_iterator_to_utf8(std_unicode::char::decode_utf16(src.iter().cloned()).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)), dst)
+    write_char_iterator_to_utf8(std_unicode::char::decode_utf16(src.iter().cloned())
+                                    .map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)),
+                                dst)
 }
 
 /// Converts potentially-invalid UTF-16 to valid UTF-8 with errors replaced
@@ -199,11 +197,11 @@ pub fn convert_utf16_to_str(src: &[u16], dst: &mut str) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_latin1_to_utf16(src: &[u8], dst: &mut [u16]) {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
-    src.iter().zip(dst.iter_mut()).for_each(|(from, to)| *to = *from as u16);
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
+    src.iter()
+        .zip(dst.iter_mut())
+        .for_each(|(from, to)| *to = *from as u16);
 }
 
 /// Converts bytes whose unsigned value is interpreted as Unicode code point
@@ -226,10 +224,8 @@ pub fn convert_latin1_to_utf16(src: &[u8], dst: &mut [u16]) {
 /// a `&mut str`, use `convert_utf16_to_str()` instead of this function.
 #[inline]
 pub fn convert_latin1_to_utf8(src: &[u8], dst: &mut [u8]) -> usize {
-    assert!(
-        dst.len() >= src.len() * 2,
-        "Destination must not be shorter than the source times two."
-    );
+    assert!(dst.len() >= src.len() * 2,
+            "Destination must not be shorter than the source times two.");
     write_char_iterator_to_utf8(src.iter().map(|b| *b as char), dst)
 }
 
@@ -247,10 +243,8 @@ pub fn convert_latin1_to_utf8(src: &[u8], dst: &mut [u8]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_latin1_to_str(src: &[u8], dst: &mut str) -> usize {
-    assert!(
-        dst.len() >= src.len() * 2,
-        "Destination must not be shorter than the source times two."
-    );
+    assert!(dst.len() >= src.len() * 2,
+            "Destination must not be shorter than the source times two.");
     0
 }
 
@@ -275,14 +269,17 @@ pub fn convert_latin1_to_str(src: &[u8], dst: &mut str) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_utf8_to_latin1_lossy(src: &[u8], dst: &mut [u8]) -> usize {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
     write_iterator_to_slice(std_unicode::char::decode_utf8(src.iter().cloned()).map(|r| match r {
-        Ok(c) => c as u8,
-        Err(_) => 0xFF
-    }) , dst)
+                                                                                        Ok(c) => {
+                                                                                            c as u8
+                                                                                        }
+                                                                                        Err(_) => {
+                                                                                            0xFF
+                                                                                        }
+                                                                                    }),
+                            dst)
 }
 
 /// If the input is valid UTF-16 representing only Unicode code points from
@@ -306,11 +303,11 @@ pub fn convert_utf8_to_latin1_lossy(src: &[u8], dst: &mut [u8]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_utf16_to_latin1_lossy(src: &[u16], dst: &mut [u8]) {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
-    src.iter().zip(dst.iter_mut()).for_each(|(from, to)| *to = *from as u8);
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
+    src.iter()
+        .zip(dst.iter_mut())
+        .for_each(|(from, to)| *to = *from as u8);
 }
 
 /// Returns the index of the first unpaired surrogate or, if the input is
@@ -326,10 +323,8 @@ pub fn utf16_valid_up_to(buffer: &[u16]) -> usize {
                 } else {
                     offset += 2;
                 }
-            },
-            Err(_) => {
-                return offset
-            },
+            }
+            Err(_) => return offset,
         }
     }
     assert_eq!(offset, buffer.len());
@@ -364,11 +359,13 @@ pub fn ensure_utf16_validity(buffer: &mut [u16]) {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn copy_ascii_to_ascii(src: &[u8], dst: &mut [u8]) -> usize {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
-    src.iter().zip(dst.iter_mut()).filter(|&(from, _)| *from < 0x80).map(|(from, to)| *to = *from).count()
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
+    src.iter()
+        .zip(dst.iter_mut())
+        .filter(|&(from, _)| *from < 0x80)
+        .map(|(from, to)| *to = *from)
+        .count()
 }
 
 /// Copies ASCII from source to destination zero-extending it to UTF-16 up to
@@ -385,11 +382,13 @@ pub fn copy_ascii_to_ascii(src: &[u8], dst: &mut [u8]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn copy_ascii_to_basic_latin(src: &[u8], dst: &mut [u16]) -> usize {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
-    src.iter().zip(dst.iter_mut()).filter(|&(from, _)| *from < 0x80).map(|(from, to)| *to = *from as u16).count()
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
+    src.iter()
+        .zip(dst.iter_mut())
+        .filter(|&(from, _)| *from < 0x80)
+        .map(|(from, to)| *to = *from as u16)
+        .count()
 }
 
 /// Copies Basic Latin from source to destination narrowing it to ASCII up to
@@ -406,11 +405,13 @@ pub fn copy_ascii_to_basic_latin(src: &[u8], dst: &mut [u16]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn copy_basic_latin_to_ascii(src: &[u16], dst: &mut [u8]) -> usize {
-    assert!(
-        dst.len() >= src.len(),
-        "Destination must not be shorter than the source."
-    );
-    src.iter().zip(dst.iter_mut()).filter(|&(from, _)| *from < 0x80).map(|(from, to)| *to = *from as u8).count()
+    assert!(dst.len() >= src.len(),
+            "Destination must not be shorter than the source.");
+    src.iter()
+        .zip(dst.iter_mut())
+        .filter(|&(from, _)| *from < 0x80)
+        .map(|(from, to)| *to = *from as u8)
+        .count()
 }
 
 // Any copyright to the test code below this comment is dedicated to the
