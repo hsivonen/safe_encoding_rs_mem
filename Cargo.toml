@@ -1,0 +1,9 @@
+[package]
+name = "safe_encoding_rs_mem"
+description = "A safe reference implementation of encoding_rs::mem"
+version = "0.1.0"
+authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
+license = "MIT/Apache-2.0"
+readme = "README.md"
+
+[dependencies]
