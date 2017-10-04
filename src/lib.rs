@@ -72,7 +72,6 @@ pub fn is_utf8_latin1(buffer: &[u8]) -> bool {
         Err(_) => false,
         Ok(s) => is_str_latin1(s),
     }
-
 }
 
 /// Checks whether the buffer represents only code point less than or equal
@@ -181,7 +180,14 @@ pub fn convert_utf16_to_utf8(src: &[u16], dst: &mut [u8]) -> usize {
 #[inline]
 pub fn convert_utf16_to_str(src: &[u16], dst: &mut str) -> usize {
     assert!(dst.len() >= src.len() * 3 + 1);
-    0
+    let bytes = unsafe { dst.as_bytes_mut() };
+    let n = convert_utf16_to_utf8(src, bytes);
+    let mut trail = n;
+    while trail < bytes.len() && ((bytes[trail] & 0xC0) == 0x80) {
+        bytes[trail] = 0;
+        trail += 1;
+    }
+    n
 }
 
 /// Converts bytes whose unsigned value is interpreted as Unicode code point
@@ -245,7 +251,14 @@ pub fn convert_latin1_to_utf8(src: &[u8], dst: &mut [u8]) -> usize {
 pub fn convert_latin1_to_str(src: &[u8], dst: &mut str) -> usize {
     assert!(dst.len() >= src.len() * 2,
             "Destination must not be shorter than the source times two.");
-    0
+    let bytes = unsafe { dst.as_bytes_mut() };
+    let n = convert_latin1_to_utf8(src, bytes);
+    let mut trail = n;
+    while trail < bytes.len() && ((bytes[trail] & 0xC0) == 0x80) {
+        bytes[trail] = 0;
+        trail += 1;
+    }
+    n
 }
 
 /// If the input is valid UTF-8 representing only Unicode code points from
@@ -363,7 +376,7 @@ pub fn copy_ascii_to_ascii(src: &[u8], dst: &mut [u8]) -> usize {
             "Destination must not be shorter than the source.");
     src.iter()
         .zip(dst.iter_mut())
-        .filter(|&(from, _)| *from < 0x80)
+        .take_while(|&(from, _)| *from < 0x80)
         .map(|(from, to)| *to = *from)
         .count()
 }
@@ -386,7 +399,7 @@ pub fn copy_ascii_to_basic_latin(src: &[u8], dst: &mut [u16]) -> usize {
             "Destination must not be shorter than the source.");
     src.iter()
         .zip(dst.iter_mut())
-        .filter(|&(from, _)| *from < 0x80)
+        .take_while(|&(from, _)| *from < 0x80)
         .map(|(from, to)| *to = *from as u16)
         .count()
 }
@@ -409,7 +422,7 @@ pub fn copy_basic_latin_to_ascii(src: &[u16], dst: &mut [u8]) -> usize {
             "Destination must not be shorter than the source.");
     src.iter()
         .zip(dst.iter_mut())
-        .filter(|&(from, _)| *from < 0x80)
+        .take_while(|&(from, _)| *from < 0x80)
         .map(|(from, to)| *to = *from as u8)
         .count()
 }
