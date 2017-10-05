@@ -12,4 +12,4 @@ outperforming the standard library.
 ## Licensing
 
 Please see the file named
-[COPYRIGHT](https://github.com/hsivonen/encoding_rs/blob/master/COPYRIGHT).
+[COPYRIGHT](https://github.com/hsivonen/safe_encoding_rs_mem/blob/master/COPYRIGHT).
