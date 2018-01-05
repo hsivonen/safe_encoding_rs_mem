@@ -121,8 +121,7 @@ pub fn convert_utf8_to_utf16(src: &[u8], dst: &mut [u16]) -> usize {
     write_iterator_to_slice(std_unicode::str::Utf16Encoder::new(std_unicode::char::decode_utf8(src.iter().cloned()).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))), dst)
 }
 
-/// Converts valid UTF-8 to valid UTF-16 with errors replaced with the
-/// REPLACEMENT CHARACTER.
+/// Converts valid UTF-8 to valid UTF-16.
 ///
 /// The length of the destination buffer must be at least the length of the
 /// source buffer.
