@@ -16,6 +16,20 @@ extern crate std_unicode;
 
 use std::char::REPLACEMENT_CHARACTER;
 
+/// Classification of text as Latin1 (all code points are below U+0100),
+/// left-to-right with some non-Latin1 characters or as containing at least
+/// some right-to-left characters.
+#[repr(C)]
+pub enum Latin1Bidi {
+    /// Every character is below U+0100.
+    Latin1 = 0,
+    /// There is at least one character that's U+0100 or higher, but there
+    /// are no right-to-left characters.
+    LeftToRight = 1,
+    /// There is at least one right-to-left character.
+    Bidi = 2,
+}
+
 #[inline(always)]
 fn write_iterator_to_slice<I: Iterator>(iter: I, slice: &mut [I::Item]) -> usize {
     iter.zip(slice.iter_mut())
@@ -104,8 +118,8 @@ pub fn is_utf16_latin1(buffer: &[u16]) -> bool {
     true
 }
 
-/// Checks whether the buffer contains code points that trigger
-/// right-to-left processing.
+/// Checks whether a potentially-invalid UTF-8 buffer contains code points
+/// that trigger right-to-left processing.
 ///
 /// The check is done on a Unicode block basis without regard to assigned
 /// vs. unassigned code points in the block. Additionally, the four
@@ -125,7 +139,7 @@ pub fn is_utf8_bidi(buffer: &[u8]) -> bool {
     }
 }
 
-/// Checks whether the buffer contains code points that trigger
+/// Checks whether a valid UTF-8 buffer contains code points that trigger
 /// right-to-left processing.
 ///
 /// The check is done on a Unicode block basis without regard to assigned
@@ -144,7 +158,7 @@ pub fn is_str_bidi(buffer: &str) -> bool {
     false
 }
 
-/// Checks whether the buffer contains code points that trigger
+/// Checks whether a UTF-16 buffer contains code points that trigger
 /// right-to-left processing.
 ///
 /// The check is done on a Unicode block basis without regard to assigned
@@ -167,7 +181,7 @@ pub fn is_utf16_bidi(buffer: &[u16]) -> bool {
     false
 }
 
-/// Checks whether the code point triggers right-to-left processing.
+/// Checks whether a code point triggers right-to-left processing.
 ///
 /// The check is done on a Unicode block basis without regard to assigned
 /// vs. unassigned code points in the block. Additionally, the four
@@ -204,7 +218,7 @@ pub fn is_char_bidi(c: char) -> bool {
     }
 }
 
-/// Checks whether the code unit triggers right-to-left processing.
+/// Checks whether a UTF-16 code unit triggers right-to-left processing.
 ///
 /// The check is done on a Unicode block basis without regard to assigned
 /// vs. unassigned code points in the block. Additionally, the four
@@ -226,6 +240,69 @@ pub fn is_utf16_code_unit_bidi(u: u16) -> bool {
         0xFE70...0xFEFF | 0xD802 | 0xD803 | 0xD83A | 0xD83B |
         0x200F | 0x202B | 0x202E | 0x2067 => true,
         _ => false,
+    }
+}
+
+/// Checks whether a potentially invalid UTF-8 buffer contains code points
+/// that trigger right-to-left processing or is all-Latin1.
+///
+/// Possibly more efficient than performing the checks separately.
+///
+/// Returns `Latin1Bidi::Latin1` if `is_utf8_latin1()` would return `true`.
+/// Otherwise, returns `Latin1Bidi::Bidi` if `is_utf8_bidi()` would return
+/// `true`. Otherwise, returns `Latin1Bidi::LeftToRight`.
+#[inline]
+pub fn check_utf8_for_latin1_and_bidi(buffer: &[u8]) -> Latin1Bidi {
+    if is_utf8_latin1(buffer) {
+        Latin1Bidi::Latin1
+    } else {
+        if is_utf8_bidi(buffer) {
+            Latin1Bidi::Bidi
+        } else {
+            Latin1Bidi::LeftToRight
+        }
+    }
+}
+
+/// Checks whether a valid UTF-8 buffer contains code points
+/// that trigger right-to-left processing or is all-Latin1.
+///
+/// Possibly more efficient than performing the checks separately.
+///
+/// Returns `Latin1Bidi::Latin1` if `is_str_latin1()` would return `true`.
+/// Otherwise, returns `Latin1Bidi::Bidi` if `is_str_bidi()` would return
+/// `true`. Otherwise, returns `Latin1Bidi::LeftToRight`.
+#[inline]
+pub fn check_str_for_latin1_and_bidi(buffer: &str) -> Latin1Bidi {
+    if is_str_latin1(buffer) {
+        Latin1Bidi::Latin1
+    } else {
+        if is_str_bidi(buffer) {
+            Latin1Bidi::Bidi
+        } else {
+            Latin1Bidi::LeftToRight
+        }
+    }
+}
+
+/// Checks whether a potentially invalid UTF-16 buffer contains code points
+/// that trigger right-to-left processing or is all-Latin1.
+///
+/// Possibly more efficient than performing the checks separately.
+///
+/// Returns `Latin1Bidi::Latin1` if `is_utf16_latin1()` would return `true`.
+/// Otherwise, returns `Latin1Bidi::Bidi` if `is_utf16_bidi()` would return
+/// `true`. Otherwise, returns `Latin1Bidi::LeftToRight`.
+#[inline]
+pub fn check_utf16_for_latin1_and_bidi(buffer: &[u16]) -> Latin1Bidi {
+    if is_utf16_latin1(buffer) {
+        Latin1Bidi::Latin1
+    } else {
+        if is_utf16_bidi(buffer) {
+            Latin1Bidi::Bidi
+        } else {
+            Latin1Bidi::LeftToRight
+        }
     }
 }
 
