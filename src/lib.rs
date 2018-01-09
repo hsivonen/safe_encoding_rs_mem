@@ -8,7 +8,7 @@
 // except according to those terms.
 
 //! Reference implementation of `encoding_rs::mem` using the standard library
-//! without `unsafe`, except from writing into `&mut str`.
+//! without `unsafe`, except for writing into `&mut str`.
 
 #![feature(unicode, decode_utf8, iterator_for_each)]
 
@@ -19,6 +19,8 @@ use std::char::REPLACEMENT_CHARACTER;
 /// Classification of text as Latin1 (all code points are below U+0100),
 /// left-to-right with some non-Latin1 characters or as containing at least
 /// some right-to-left characters.
+#[must_use]
+#[derive(Debug, PartialEq, Eq)]
 #[repr(C)]
 pub enum Latin1Bidi {
     /// Every character is below U+0100.
@@ -700,6 +702,7 @@ mod tests {
         }
         for i in 0..src.len() {
             assert!(is_utf16_latin1(&src[i..]));
+            assert_eq!(check_utf16_for_latin1_and_bidi(&src[i..]), Latin1Bidi::Latin1);
         }
     }
 
@@ -715,6 +718,7 @@ mod tests {
             for j in 0..tail.len() {
                 tail[j] = 0x100 + j as u16;
                 assert!(!is_utf16_latin1(tail));
+                assert_ne!(check_utf16_for_latin1_and_bidi(tail), Latin1Bidi::Latin1);
             }
         }
     }
@@ -729,6 +733,7 @@ mod tests {
         for i in 0..src.len() {
             let s = String::from_utf16(&src[i..]).unwrap();
             assert!(is_str_latin1(&s[..]));
+            assert_eq!(check_str_for_latin1_and_bidi(&s[..]), Latin1Bidi::Latin1);
         }
     }
 
@@ -745,6 +750,7 @@ mod tests {
                 tail[j] = 0x100 + j as u16;
                 let s = String::from_utf16(tail).unwrap();
                 assert!(!is_str_latin1(&s[..]));
+                assert_ne!(check_str_for_latin1_and_bidi(&s[..]), Latin1Bidi::Latin1);
             }
         }
     }
@@ -759,6 +765,7 @@ mod tests {
         for i in 0..src.len() {
             let s = String::from_utf16(&src[i..]).unwrap();
             assert!(is_utf8_latin1(s.as_bytes()));
+            assert_eq!(check_utf8_for_latin1_and_bidi(s.as_bytes()), Latin1Bidi::Latin1);
         }
     }
 
@@ -775,6 +782,7 @@ mod tests {
                 tail[j] = 0x100 + j as u16;
                 let s = String::from_utf16(tail).unwrap();
                 assert!(!is_utf8_latin1(s.as_bytes()));
+                assert_ne!(check_utf8_for_latin1_and_bidi(s.as_bytes()), Latin1Bidi::Latin1);
             }
         }
     }
