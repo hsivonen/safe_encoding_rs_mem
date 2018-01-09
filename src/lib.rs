@@ -65,7 +65,7 @@ pub fn is_basic_latin(buffer: &[u16]) -> bool {
 /// less than or equal to U+00FF.
 ///
 /// Fails fast. (I.e. returns before having read the whole buffer if UTF-8
-/// invalidity or code points above U+00FF are discovered.
+/// invalidity or code points above U+00FF are discovered.)
 #[inline]
 pub fn is_utf8_latin1(buffer: &[u8]) -> bool {
     match ::std::str::from_utf8(buffer) {
@@ -78,7 +78,7 @@ pub fn is_utf8_latin1(buffer: &[u8]) -> bool {
 /// to U+00FF.
 ///
 /// Fails fast. (I.e. returns before having read the whole buffer if code
-/// points above U+00FF are discovered.
+/// points above U+00FF are discovered.)
 #[inline]
 pub fn is_str_latin1(buffer: &str) -> bool {
     for c in buffer.chars() {
@@ -102,6 +102,131 @@ pub fn is_utf16_latin1(buffer: &[u16]) -> bool {
         }
     }
     true
+}
+
+/// Checks whether the buffer contains code points that trigger
+/// right-to-left processing.
+///
+/// The check is done on a Unicode block basis without regard to assigned
+/// vs. unassigned code points in the block. Additionally, the four
+/// RIGHT-TO-LEFT FOO controls in General Punctuation are checked for.
+/// Control characters that are technically bidi controls but do not cause
+/// right-to-left behavior without the presence of right-to-left characters
+/// or right-to-left controls are not checked for.
+///
+/// If the input is invalid UTF-8, may return `true` even if replacing the
+/// errors with the REPLACEMENT CHARACTER and trying again would result in
+/// `false`.
+#[inline]
+pub fn is_utf8_bidi(buffer: &[u8]) -> bool {
+    match ::std::str::from_utf8(buffer) {
+        Err(_) => true,
+        Ok(s) => is_str_bidi(s),
+    }
+}
+
+/// Checks whether the buffer contains code points that trigger
+/// right-to-left processing.
+///
+/// The check is done on a Unicode block basis without regard to assigned
+/// vs. unassigned code points in the block. Additionally, the four
+/// RIGHT-TO-LEFT FOO controls in General Punctuation are checked for.
+/// Control characters that are technically bidi controls but do not cause
+/// right-to-left behavior without the presence of right-to-left characters
+/// or right-to-left controls are not checked for.
+#[inline]
+pub fn is_str_bidi(buffer: &str) -> bool {
+    for c in buffer.chars() {
+        if is_char_bidi(c) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Checks whether the buffer contains code points that trigger
+/// right-to-left processing.
+///
+/// The check is done on a Unicode block basis without regard to assigned
+/// vs. unassigned code points in the block. Additionally, the four
+/// RIGHT-TO-LEFT FOO controls in General Punctuation are checked for.
+/// Control characters that are technically bidi controls but do not cause
+/// right-to-left behavior without the presence of right-to-left characters
+/// or right-to-left controls are not checked for.
+///
+/// If the input is invalid UTF-16, may return `true` even if replacing the
+/// errors with the REPLACEMENT CHARACTER and trying again would result in
+/// `false`.
+#[inline]
+pub fn is_utf16_bidi(buffer: &[u16]) -> bool {
+    for u in buffer {
+        if is_utf16_code_unit_bidi(*u) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Checks whether the code point triggers right-to-left processing.
+///
+/// The check is done on a Unicode block basis without regard to assigned
+/// vs. unassigned code points in the block. Additionally, the four
+/// RIGHT-TO-LEFT FOO controls in General Punctuation are checked for.
+/// Control characters that are technically bidi controls but do not cause
+/// right-to-left behavior without the presence of right-to-left characters
+/// or right-to-left controls are not checked for.
+#[inline(always)]
+pub fn is_char_bidi(c: char) -> bool {
+    // Controls:
+    // Every control with RIGHT-TO-LEFT in its name in
+    // https://www.unicode.org/charts/PDF/U2000.pdf
+    // U+200F RLM
+    // U+202B RLE
+    // U+202E RLO
+    // U+2067 RLI
+    //
+    // BMP RTL:
+    // https://www.unicode.org/roadmaps/bmp/
+    // U+0590...U+08FF
+    // U+FB50...U+FDFF Arabic Presentation Forms A
+    // U+FE70...U+FEFF Arabic Presentation Forms B
+    //
+    // Supplementary RTL:
+    // https://www.unicode.org/roadmaps/smp/
+    // U+10800...U+10FFF (Lead surrogate U+D802 or U+D803)
+    // U+1E800...U+1EFFF (Lead surrogate U+D83A or U+D83B)
+    match c {
+        '\u{0590}'...'\u{08FF}' | '\u{FB50}'...'\u{FDFF}' |
+        '\u{FE70}'...'\u{FEFF}' | '\u{10800}'...'\u{10FFF}' |
+        '\u{1E800}'...'\u{1EFFF}' | '\u{200F}' | '\u{202B}' |
+        '\u{202E}' | '\u{2067}' => true,
+        _ => false,
+    }
+}
+
+/// Checks whether the code unit triggers right-to-left processing.
+///
+/// The check is done on a Unicode block basis without regard to assigned
+/// vs. unassigned code points in the block. Additionally, the four
+/// RIGHT-TO-LEFT FOO controls in General Punctuation are checked for.
+/// Control characters that are technically bidi controls but do not cause
+/// right-to-left behavior without the presence of right-to-left characters
+/// or right-to-left controls are not checked for.
+///
+/// Since supplementary-plane right-to-left blocks are identifiable from the
+/// high surrogate without examining the low surrogate, this function returns
+/// `true` for such high surrogates making the function suitable for handling
+/// supplementary-plane text without decoding surrogate pairs to scalar
+/// values. Obviously, such high surrogates are then reported as right-to-left
+/// even if actually unpaired.
+#[inline(always)]
+pub fn is_utf16_code_unit_bidi(u: u16) -> bool {
+    match u {
+        0x0590...0x08FF | 0xFB50...0xFDFF |
+        0xFE70...0xFEFF | 0xD802 | 0xD803 | 0xD83A | 0xD83B |
+        0x200F | 0x202B | 0x202E | 0x2067 => true,
+        _ => false,
+    }
 }
 
 /// Converts potentially-invalid UTF-8 to valid UTF-16 with errors replaced
@@ -200,7 +325,7 @@ pub fn convert_utf16_to_str(src: &[u16], dst: &mut str) -> usize {
 /// # Panics
 ///
 /// Panics if the destination buffer is shorter than stated above.
-#[inline]
+#[inline(never)]
 pub fn convert_latin1_to_utf16(src: &[u8], dst: &mut [u16]) {
     assert!(dst.len() >= src.len(),
             "Destination must not be shorter than the source.");
@@ -313,7 +438,7 @@ pub fn convert_utf8_to_latin1_lossy(src: &[u8], dst: &mut [u8]) -> usize {
 /// # Panics
 ///
 /// Panics if the destination buffer is shorter than stated above.
-#[inline]
+#[inline(never)]
 pub fn convert_utf16_to_latin1_lossy(src: &[u16], dst: &mut [u8]) {
     assert!(dst.len() >= src.len(),
             "Destination must not be shorter than the source.");
