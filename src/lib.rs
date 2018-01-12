@@ -13,24 +13,10 @@
 #![feature(unicode, decode_utf8, iterator_for_each)]
 
 extern crate std_unicode;
+extern crate encoding_rs;
 
 use std::char::REPLACEMENT_CHARACTER;
-
-/// Classification of text as Latin1 (all code points are below U+0100),
-/// left-to-right with some non-Latin1 characters or as containing at least
-/// some right-to-left characters.
-#[must_use]
-#[derive(Debug, PartialEq, Eq)]
-#[repr(C)]
-pub enum Latin1Bidi {
-    /// Every character is below U+0100.
-    Latin1 = 0,
-    /// There is at least one character that's U+0100 or higher, but there
-    /// are no right-to-left characters.
-    LeftToRight = 1,
-    /// There is at least one right-to-left character.
-    Bidi = 2,
-}
+use encoding_rs::mem::Latin1Bidi;
 
 #[inline(always)]
 fn write_iterator_to_slice<I: Iterator>(iter: I, slice: &mut [I::Item]) -> usize {
@@ -1129,6 +1115,5 @@ mod tests {
         assert_eq!(check_utf16_for_latin1_and_bidi(&[0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0xD83B, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69]), Latin1Bidi::Bidi);
 
         assert_eq!(check_utf16_for_latin1_and_bidi(&[0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x0590, 0x3041, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69]), Latin1Bidi::Bidi);
-
     }
 }

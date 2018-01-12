@@ -7,3 +7,4 @@ license = "MIT/Apache-2.0"
 readme = "README.md"
 
 [dependencies]
+encoding_rs = { path = "../encoding_rs/" }
