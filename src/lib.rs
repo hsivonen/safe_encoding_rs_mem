@@ -12,7 +12,6 @@
 
 #![feature(unicode, decode_utf8, iterator_for_each)]
 
-extern crate std_unicode;
 extern crate encoding_rs;
 
 use std::char::REPLACEMENT_CHARACTER;
@@ -308,7 +307,8 @@ pub fn check_utf16_for_latin1_and_bidi(buffer: &[u16]) -> Latin1Bidi {
 #[inline]
 pub fn convert_utf8_to_utf16(src: &[u8], dst: &mut [u16]) -> usize {
     assert!(dst.len() >= src.len() + 1);
-    write_iterator_to_slice(std_unicode::str::Utf16Encoder::new(std_unicode::char::decode_utf8(src.iter().cloned()).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER))), dst)
+    let s = String::from_utf8_lossy(src);
+    write_iterator_to_slice(s.encode_utf16(), dst)
 }
 
 /// Converts valid UTF-8 to valid UTF-16.
@@ -349,7 +349,7 @@ pub fn convert_str_to_utf16(src: &str, dst: &mut [u16]) -> usize {
 #[inline]
 pub fn convert_utf16_to_utf8(src: &[u16], dst: &mut [u8]) -> usize {
     assert!(dst.len() >= src.len() * 3 + 1);
-    write_char_iterator_to_utf8(std_unicode::char::decode_utf16(src.iter().cloned())
+    write_char_iterator_to_utf8(std::char::decode_utf16(src.iter().cloned())
                                     .map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)),
                                 dst)
 }
@@ -473,7 +473,7 @@ pub fn convert_latin1_to_str(src: &[u8], dst: &mut str) -> usize {
 pub fn convert_utf8_to_latin1_lossy(src: &[u8], dst: &mut [u8]) -> usize {
     assert!(dst.len() >= src.len(),
             "Destination must not be shorter than the source.");
-    write_iterator_to_slice(std_unicode::char::decode_utf8(src.iter().cloned()).map(|r| match r {
+    write_iterator_to_slice(std::char::decode_utf8(src.iter().cloned()).map(|r| match r {
                                                                                         Ok(c) => {
                                                                                             c as u8
                                                                                         }
@@ -517,7 +517,7 @@ pub fn convert_utf16_to_latin1_lossy(src: &[u16], dst: &mut [u8]) {
 #[inline]
 pub fn utf16_valid_up_to(buffer: &[u16]) -> usize {
     let mut offset = 0;
-    for r in std_unicode::char::decode_utf16(buffer.iter().cloned()) {
+    for r in std::char::decode_utf16(buffer.iter().cloned()) {
         match r {
             Ok(c) => {
                 if c <= '\u{FFFF}' {
