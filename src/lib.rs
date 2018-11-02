@@ -10,8 +10,6 @@
 //! Reference implementation of `encoding_rs::mem` using the standard library
 //! without `unsafe`, except for writing into `&mut str`.
 
-#![feature(unicode, decode_utf8, iterator_for_each)]
-
 extern crate encoding_rs;
 
 use std::char::REPLACEMENT_CHARACTER;
@@ -473,14 +471,8 @@ pub fn convert_latin1_to_str(src: &[u8], dst: &mut str) -> usize {
 pub fn convert_utf8_to_latin1_lossy(src: &[u8], dst: &mut [u8]) -> usize {
     assert!(dst.len() >= src.len(),
             "Destination must not be shorter than the source.");
-    write_iterator_to_slice(std::char::decode_utf8(src.iter().cloned()).map(|r| match r {
-                                                                                        Ok(c) => {
-                                                                                            c as u8
-                                                                                        }
-                                                                                        Err(_) => {
-                                                                                            0xFF
-                                                                                        }
-                                                                                    }),
+    let valid = String::from_utf8_lossy(src);
+    write_iterator_to_slice(valid.chars().map(|r| r as u8),
                             dst)
 }
 
