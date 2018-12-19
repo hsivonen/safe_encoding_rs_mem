@@ -362,7 +362,7 @@ pub fn convert_str_to_utf16(src: &str, dst: &mut [u16]) -> usize {
 /// a `&mut str`, use `convert_utf16_to_str()` instead of this function.
 #[inline]
 pub fn convert_utf16_to_utf8(src: &[u16], dst: &mut [u8]) -> usize {
-    assert!(dst.len() >= src.len() * 3 + 1);
+    assert!(dst.len() >= src.len() * 3);
     write_char_iterator_to_utf8(
         std::char::decode_utf16(src.iter().cloned()).map(|r| r.unwrap_or(REPLACEMENT_CHARACTER)),
         dst,
@@ -383,7 +383,7 @@ pub fn convert_utf16_to_utf8(src: &[u16], dst: &mut [u8]) -> usize {
 /// Panics if the destination buffer is shorter than stated above.
 #[inline]
 pub fn convert_utf16_to_str(src: &[u16], dst: &mut str) -> usize {
-    assert!(dst.len() >= src.len() * 3 + 1);
+    assert!(dst.len() >= src.len() * 3);
     let bytes = unsafe { dst.as_bytes_mut() };
     let n = convert_utf16_to_utf8(src, bytes);
     let mut trail = n;
